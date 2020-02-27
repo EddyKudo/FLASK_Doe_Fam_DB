@@ -8,6 +8,8 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from models import db
+from models import Family
+import uuid
 #from models import Person
 
 app = Flask(__name__)
@@ -27,6 +29,63 @@ def handle_invalid_usage(error):
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
+
+@app.route("/new_member", methods=["POST"])
+def create_new_member():
+    data = request.get_json()
+    new_member = Family(public_id=str(uuid.uuid4()), first_name=data["first_name"], last_name=data["last_name"],age=data["age"],lucky_numbers=data["lucky_numbers"])
+    db.session.add(new_member)
+    db.session.commit()
+    return jsonify({"message":"New User Created!"})
+
+@app.route("/Family_members", methods=["GET"])
+def get_all_family():
+
+    family = Family.query.all()
+    output = []
+
+    for member in family:
+        member_data = {}
+        member_data["public_id"] = member.public_id
+
+        member_data["last_name"] = member.last_name
+        member_data["first_name"] = member.first_name
+        member_data["age"] = member.age
+        member_data["lucky_numbers"] = member.lucky_numbers
+        output.append(member_data)
+
+    return jsonify({"Family" : output})
+
+@app.route("/Family_members/<public_id>", methods=["GET"])
+def get_one_member(public_id):
+    member = Family.query.filter_by(public_id=public_id).first()
+
+    if not member:
+        return jsonify({"message" : "No such family member was born!"}), 404
+
+    member_data = {}
+    output = []
+    member_data["public_id"]=member.public_id
+    member_data["last_name"]=member.last_name
+    member_data["first_name"]=member.first_name
+    member_data["age"]=member.age
+    member_data["lucky_numbers"]=member.lucky_numbers
+    output.append(member_data)
+
+    return jsonify({"Family_member":member_data})
+
+@app.route("/Family_members/<public_id>", methods=["DELETE"])
+def delete_member(public_id):
+    member = Family.query.filter_by(public_id=public_id).first()
+
+    if not member:
+        return jsonify({"message" : "No such family member was born!"}), 404
+
+    db.session.delete(member)
+    db.session.commit()
+
+    return jsonify({"message" : "That one shell never return, exiled forever!"})
+    
 
 @app.route('/hello', methods=['POST', 'GET'])
 def handle_hello():
