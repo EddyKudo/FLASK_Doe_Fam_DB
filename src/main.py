@@ -10,6 +10,7 @@ from utils import APIException, generate_sitemap
 from models import db
 from models import Family
 import uuid
+import re 
 #from models import Person
 
 app = Flask(__name__)
@@ -73,6 +74,30 @@ def get_one_member(public_id):
     output.append(member_data)
 
     return jsonify({"Family_member":member_data})
+def sum_of_lucky(public_id):
+    member = Family.query.filter_by(public_id=public_id).first()
+    if not member:
+        return jsonify({"message" : "No such family member was born!"}), 404
+    
+    def find_sum(lucky_numbers): 
+    # Regular Expression that matches digits in between a string 
+        return sum(map(int,re.findall('\d+',lucky_numbers)))
+        
+    return find_sum(lucky_numbers)
+  
+@app.route("/Family_members/<public_id>", methods=["PUT"])
+def add_lucky_mumber(public_id):
+    member = Family.query.filter_by(public_id=public_id).first()
+    
+    if not member:
+        return jsonify({"message" : "No such family member was ever born!"}), 404
+    
+    data = request.get_json()
+    member.lucky_numbers += data["number"]
+    db.session.commit()
+
+    return jsonify({"message" : "added new lucky number =)"})
+
 
 @app.route("/Family_members/<public_id>", methods=["DELETE"])
 def delete_member(public_id):
